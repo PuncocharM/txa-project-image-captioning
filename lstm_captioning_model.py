@@ -78,10 +78,11 @@ class RNNCaptioningModel:
                                                  name='infer_input_image')
         self.infer_input = tf.placeholder(tf.int32, [None, 1], name='infer_input')
         self.infer_input_lengths = tf.placeholder(tf.int32, [None], name='infer_input_lengths')
-        self.state_feed = tf.placeholder(dtype=tf.float32, shape=[2, 1, self.lstm_size], name='state_feed')
+        self.state_feed = tf.placeholder(dtype=tf.float32, shape=[2, None, self.lstm_size], name='state_feed')
         with tf.variable_scope('root', reuse=reuse):
             logits = self.build_rnn(self.infer_input_images, self.infer_input, self.infer_input_lengths,
                                     self.state_feed, mode='inference')
+            logits = tf.squeeze(logits, axis=1)
             self.infer_probas = tf.nn.softmax(logits)
 
     def build_loss(self, logits, targets, input_lengths):
@@ -167,7 +168,7 @@ class RNNCaptioningModel:
         print(time.strftime('It took %Hh %Mm %Ss', time.gmtime(t_b - t_a)))
 
     def infer_seed_with_image(self, X_images):
-        return self.sess.run([self.initial_state], feed_dict={
+        return self.sess.run(self.initial_state, feed_dict={
             self.infer_input_images: X_images,
         })
 
@@ -178,15 +179,25 @@ class RNNCaptioningModel:
             self.state_feed: state
         })
 
-    def infer(self, img_descriptor, start_id, end_id, limit=50):
-        state = self.infer_seed_with_image(img_descriptor.reshape(1, -1))[0]
-        seq = [start_id]
+    def infer(self, img_descriptors, start_id, end_id, limit=50):
+        if img_descriptors.ndim == 1:
+            img_descriptors = img_descriptors.reshape((-1,1))
+        batch_size = img_descriptors.shape[0]
+        states = self.infer_seed_with_image(img_descriptors)
+        seqs = np.zeros(shape=(limit+1, batch_size), dtype=np.int32)
+        seqs[0, :] = start_id
         for i in range(limit):
-            p, state = self.infer_step(np.reshape(seq[-1], (1, 1)), np.array([1]), state)
-            #     max_id = np.argmax(p)
-            p = p.reshape([-1])
-            max_id = np.random.choice(list(range(len(p))), p=p)
-            seq.append(max_id)
-            if max_id == end_id:
-                break
-        return seq
+            p, states = self.infer_step(np.reshape(seqs[i, :], (-1, 1)), np.ones(batch_size), states)
+            for j in range(batch_size):
+                #     max_id = np.argmax(p[j])
+                max_id = np.random.choice(len(p[j]), p=p[j])
+                seqs[i+1][j] = max_id
+        seqs = seqs.T
+
+        # after first END put all ENDs
+        for i in range(batch_size):
+            for j in range(limit):
+                if seqs[i,j] == end_id:
+                    seqs[i,j:] = end_id
+                    break
+        return seqs
