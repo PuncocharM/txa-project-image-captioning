@@ -14,7 +14,8 @@ descriptors_val = xc_val
 print('... loading descriptors done.')
 
 print('Loading training data...')
-X_images, X_captions, Y, X_lens, vocab_size, _ = load_captions_and_images(descriptors_train)
+X_images, X_captions, Y, X_lens, vocab_size, _ = load_captions_and_images(descriptors_train, data_type='train2017')
+X_images_val, X_captions_val, Y_val, X_lens_val, _, _ = load_captions_and_images(descriptors_val, data_type='val2017')
 print('...loading training data done.')
 
 
@@ -37,6 +38,7 @@ print('...building model done.')
 
 n_epochs = 10
 
-model.train(X_images, X_captions, Y, X_lens, n_epochs, batch_size, learning_rate, save_every=10)
+model.train(X_images, X_captions, Y, X_lens, n_epochs, batch_size, learning_rate, save_every=10,
+            X_imgs_val=X_images_val, X_captions_val=X_captions_val, Y_val=Y_val, X_lens_val=X_lens_val)
 
 sess.close()

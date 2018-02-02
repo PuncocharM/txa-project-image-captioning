@@ -17,6 +17,9 @@ class RNNCaptioningModel:
 
         self.step = 0
         self.losses = []
+        self.losses_x = []
+        self.losses_val = []
+        self.losses_val_x = []
 
     def build_rnn(self, img_input, text_input, input_lengths, state_feed=None, mode='train'):
         # Text Embedding
@@ -135,28 +138,36 @@ class RNNCaptioningModel:
         return loss / i
 
     def train(self, X_imgs, X_captions, Y, X_lens, n_epochs, batch_size, learning_rate, evaluate_every=10,
-              save_every=10):
+              save_every=10, X_imgs_val=None, X_captions_val=None, Y_val=None, X_lens_val=None):
         t_a = time.clock()
         for epoch in range(n_epochs):
             print('epoch', epoch + 1)
             for x_imgs, x_captions, y, x_lens in self.generate_batches(X_imgs, X_captions, Y, X_lens, batch_size):
                 self.step += 1
-                self.sess.run(self.train_op, feed_dict={
+                _, loss_value = self.sess.run([self.train_op, self.train_loss], feed_dict={
                     self.train_input_images: x_imgs,
                     self.train_input: x_captions,
                     self.train_input_lengths: x_lens,
                     self.train_target: y,
                     self.learning_rate: learning_rate
                 })
+                self.losses.append(loss_value)
+                self.losses_x.append(self.step)
                 if self.step % evaluate_every == 0:
-                    loss_value = self.evaluate(X_imgs, X_captions, Y, X_lens)
-                    self.losses.append(loss_value)
+                    print('Step', self.step)
                     t_b = time.clock()
                     elapsed = time.strftime('%Hh %Mm %Ss', time.gmtime(t_b - t_a))
-                    print('training loss after', self.step, 'steps:', loss_value, 'elapsed time:', elapsed)
+                    print('  elapsed', elapsed)
+                    # loss_value = self.evaluate(X_imgs, X_captions, Y, X_lens)
+                    print('  training loss: {:.4f}'.format(loss_value))
+                    if X_imgs_val is not None:
+                        loss_value_val = self.evaluate(X_imgs_val, X_captions_val, Y_val, X_lens_val)
+                        self.losses_val.append(loss_value_val)
+                        self.losses_val_x.append(self.step)
+                        print('  validation loss: {:.4f}'.format(loss_value_val))
                 if self.step % save_every == 0:
                     saved_path = self.saver.save(self.sess, self.checkpoint_path, global_step=self.step)
-                    np.save('losses', self.losses)
+                    np.save('losses', [self.losses, self.losses_x, self.losses_val, self.losses_val_x])
                     print('saved model to', saved_path)
 
         print('Finished training')

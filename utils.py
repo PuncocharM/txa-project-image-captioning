@@ -104,7 +104,7 @@ def load_and_save_captions(ms_coco_dir, train_size, num_steps, freq_threshold, d
         vocab = [(k, v) for k, v in freq_dist.items() if v >= freq_threshold]
 
         print('Saving vocab to vocab.pic')
-        with open('vocab-{}.pic'.format(data_type), 'wb') as f:
+        with open('vocab.pic', 'wb') as f:
             pickle.dump(vocab, f)
 
     vocab_size = len(vocab)
@@ -147,7 +147,7 @@ def load_captions_and_images(descriptors, data_type='train2017'):
     import numpy as np
     import pickle
 
-    with open('vocab-{}.pic'.format(data_type), 'rb') as f:
+    with open('vocab.pic', 'rb') as f:
         vocab = pickle.load(f)
     vocab_size = len(vocab)
 
