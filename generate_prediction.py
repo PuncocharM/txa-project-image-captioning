@@ -49,7 +49,7 @@ for i in range(0, len(valImgIds), batch_size):
     seqs = model.infer(imgs, start_id=word_id['START'], end_id=word_id['END'])
     for j, k in enumerate(range(i, i + batch_size)):
         imgId = valImgIds[k]
-        caption = ' '.join([id_word[w] for w in seqs[j] if id_word[w] not in ('START', 'END')])
+        caption = ' '.join((id_word[w] for w in seqs[j] if id_word[w] not in ('START', 'END')))
         caption = caption.replace(' ,', ',').replace(' .', '.')  # not the best way
         predictions.append({'image_id': imgId, 'caption': caption})
 

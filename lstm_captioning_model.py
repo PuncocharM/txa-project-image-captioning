@@ -4,8 +4,7 @@ import time
 
 
 class RNNCaptioningModel:
-    def __init__(self, num_steps, vocab_size, image_descriptor_size, embedding_size, lstm_size, sess, checkpoint_path,
-                 saver_max_to_keep=10):
+    def __init__(self, num_steps, vocab_size, image_descriptor_size, embedding_size, lstm_size, sess, checkpoint_path, dropout=0.0, saver_max_to_keep=10):
         self.num_steps = num_steps
         self.vocab_size = vocab_size
         self.image_descriptor_size = image_descriptor_size
@@ -13,6 +12,7 @@ class RNNCaptioningModel:
         self.lstm_size = lstm_size
         self.sess = sess
         self.checkpoint_path = checkpoint_path
+        self.dropout = dropout
         self.saver_max_to_keep = saver_max_to_keep
 
         self.step = 0
@@ -35,6 +35,8 @@ class RNNCaptioningModel:
 
         # RNN layer
         lstm = tf.contrib.rnn.BasicLSTMCell(self.lstm_size)
+        if mode == 'train' and self.dropout > 0:
+            lstm = tf.contrib.rnn.DropoutWrapper(lstm, input_keep_prob=self.dropout, output_keep_prob=self.dropout)
 
         with tf.variable_scope('lstm') as lstm_scope:
             zero_state = lstm.zero_state(batch_size=tf.shape(embedded_image)[0], dtype=tf.float32)
@@ -123,7 +125,6 @@ class RNNCaptioningModel:
                 yield X_imgs[b_ids], X_captions[b_ids], Y[b_ids], X_lens[b_ids]
 
     def evaluate(self, X_imgs, X_captions, Y, X_lens):
-        # evaluate batch-by-batch, because allocating large tensors fails on memory
         loss = 0.0
         i = 0
         for x_imgs, x_captions, y, x_lens in self.generate_batches(X_imgs, X_captions, Y, X_lens, batch_size=1000,
@@ -172,7 +173,7 @@ class RNNCaptioningModel:
 
         print('Finished training')
         saved_path = self.saver.save(self.sess, self.checkpoint_path + '-final')
-        np.save('losses', self.losses)
+        np.save('losses', [self.losses, self.losses_x, self.losses_val, self.losses_val_x])
         print('Saved final model to', saved_path)
         print('Final training loss:', self.evaluate(X_imgs, X_captions, Y, X_lens))
         t_b = time.clock()

@@ -1,4 +1,5 @@
 import tensorflow as tf
+import time
 from lstm_language_model import RNNLanguageModel
 from utils import load_captions
 from config import *
@@ -22,6 +23,9 @@ print('Done with building the model')
 
 n_epochs = 10
 
+t_a = time.clock()
 model.train(X, Y, X_lens, n_epochs, batch_size, save_every=100)
+t_b = time.clock()
+print(time.strftime('It took %Hh %Mm %Ss', time.gmtime(t_b - t_a)))
 
 sess.close()

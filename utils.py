@@ -68,6 +68,9 @@ def load_and_save_captions(ms_coco_dir, train_size, num_steps, freq_threshold, d
     Saves vocab and (X_captions, X_lens, Y, caption_ids) to .pic files so that tokenization can be done only once.
 
     :param ms_coco_dir:
+    :param freq_threshold:
+    :param num_steps:
+    :param train_size:
     :param data_type: default 'train2017' or 'val2017'
     :param vocab: pass training vocab if val
     :return: None
@@ -84,13 +87,14 @@ def load_and_save_captions(ms_coco_dir, train_size, num_steps, freq_threshold, d
     imgIds = coco.getImgIds()
     annIds = coco.getAnnIds(imgIds=imgIds)
     anns = coco.loadAnns(annIds)
-    captions_original = [a['caption'] for a in anns]
-    caption_ids_original = [a['image_id'] for a in anns]
+    captions = [a['caption'] for a in anns]
+    caption_ids = [a['image_id'] for a in anns]
     print('# of images', len(imgIds), '# of captions', len(anns), '# of captions per image', len(anns) / len(imgIds))
 
     # limit training set to this number of first sentences
-    captions = captions_original[:train_size]
-    caption_ids = caption_ids_original[:train_size]
+    if train_size is not None:
+        captions = captions[:train_size]
+        caption_ids = caption_ids[:train_size]
 
     print('Tokenization...')
     token_start = 'START'
@@ -122,7 +126,7 @@ def load_and_save_captions(ms_coco_dir, train_size, num_steps, freq_threshold, d
     tok_captions = [s[:num_steps] for s in tok_captions]
 
     X_captions = [[word_id[w] for w in s[:-1]] for s in tok_captions]
-    Y = [[word_id[w] for w in s[1:]] for s in tok_captions]  # shift-by-1 X, next-word prediction
+    Y =          [[word_id[w] for w in s[1:]]  for s in tok_captions]  # shift-by-1 X, next-word prediction
 
     X_lens = np.asarray([len(x) for x in X_captions])
 

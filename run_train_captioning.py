@@ -28,7 +28,7 @@ sess = tf.Session()
 
 image_descriptor_size = X_images.shape[1]
 
-model = RNNCaptioningModel(embedding_size=embeding_size, image_descriptor_size= image_descriptor_size, lstm_size=lstm_size, num_steps=num_steps, vocab_size=vocab_size, sess=sess, checkpoint_path=checkpoint_path)
+model = RNNCaptioningModel(embedding_size=embeding_size, image_descriptor_size=image_descriptor_size, lstm_size=lstm_size, dropout=dropout, num_steps=num_steps, vocab_size=vocab_size, sess=sess, checkpoint_path=checkpoint_path)
 model.build(model_type='train')
 
 sess.run(tf.global_variables_initializer())
@@ -38,7 +38,7 @@ print('...building model done.')
 
 n_epochs = 10
 
-model.train(X_images, X_captions, Y, X_lens, n_epochs, batch_size, learning_rate, save_every=10,
+model.train(X_images, X_captions, Y, X_lens, n_epochs, batch_size, learning_rate, evaluate_every=50, save_every=1000,
             X_imgs_val=X_images_val, X_captions_val=X_captions_val, Y_val=Y_val, X_lens_val=X_lens_val)
 
 sess.close()
