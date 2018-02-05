@@ -35,7 +35,7 @@ class RNNCaptioningModel:
 
         # RNN layer
         lstm = tf.contrib.rnn.BasicLSTMCell(self.lstm_size)
-        if mode == 'train' and self.dropout > 0:
+        if mode == 'train' and self.dropout < 1:
             lstm = tf.contrib.rnn.DropoutWrapper(lstm, input_keep_prob=self.dropout, output_keep_prob=self.dropout)
 
         with tf.variable_scope('lstm') as lstm_scope:
@@ -180,11 +180,22 @@ class RNNCaptioningModel:
         print(time.strftime('It took %Hh %Mm %Ss', time.gmtime(t_b - t_a)))
 
     def infer_seed_with_image(self, X_images):
+        """
+        :param X_images:
+        :return: hidden states of the network after seeding with X_images
+        """
         return self.sess.run(self.initial_state, feed_dict={
             self.infer_input_images: X_images,
         })
 
     def infer_step(self, X_captions, X_lens, state):
+        """
+
+        :param X_captions:
+        :param X_lens:
+        :param state:
+        :return: [probas, next_hidden_states]
+        """
         return self.sess.run([self.infer_probas, self.infer_state], feed_dict={
             self.infer_input: X_captions,
             self.infer_input_lengths: X_lens,
@@ -193,7 +204,7 @@ class RNNCaptioningModel:
 
     def infer(self, img_descriptors, start_id, end_id, limit=50):
         if img_descriptors.ndim == 1:
-            img_descriptors = img_descriptors.reshape((-1,1))
+            img_descriptors = img_descriptors.reshape((1,-1))
         batch_size = img_descriptors.shape[0]
         states = self.infer_seed_with_image(img_descriptors)
         seqs = np.zeros(shape=(limit+1, batch_size), dtype=np.int32)
